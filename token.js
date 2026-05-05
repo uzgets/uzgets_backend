@@ -77,16 +77,6 @@ Telegram Stars, Premium va Gifts - barchasini bir joydan, tez va qulay sotib oli
 
 Boshlash uchun START tugmani bosing 👇
 
-- - -
-
-🇺🇿 «START» tugmasini bosish orqali, siz ommaviy oferta shartlarini qabul qilgan hisoblanasiz.
-
-🇷🇺 Нажимая «START», вы принимаете условия публичной оферты.
-
-🇬🇧 By tapping «START», you agree to our public offer.
-
-📄 Oferta: ${offerUrl}
-
 `;
 }
 

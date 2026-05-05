@@ -1704,6 +1704,18 @@ pool.on('connect', () => {
     );
   `);
 
+  // Eski deploymentlarda jadval allaqachon bo'lsa, CREATE TABLE yangi ustunlarni qo'shmaydi —
+  // shuning uchun promocode va boshqa qo'shimcha ustunlarni migratsiya qilamiz.
+  await pool.query(`
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_id TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_id TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_anonymous BOOLEAN DEFAULT false;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_comment TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS applied_promocode TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount INTEGER DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS expired_notified BOOLEAN DEFAULT false;
+  `);
+
   console.log("✅ Table 'orders' ready (unified)");
 })();
 
