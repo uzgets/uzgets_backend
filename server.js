@@ -29,8 +29,8 @@ app.use(helmet({
 // 🛡️ SECURITY: CORS — faqat ruxsat etilgan domenlar
 // ======================
 const ALLOWED_ORIGINS = [
-  'https://starsx.starstg.uz',
-  'https://www.starsx.starstg.uz',
+  'https://starspaymee.starstg.uz',
+  'https://www.starspaymee.starstg.uz',
   'https://web.telegram.org',
   'https://t.me',
   process.env.WEBAPP_URL,
@@ -345,19 +345,19 @@ async function loadPendingOrdersToCache() {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
             } else if (row.order_type === 'gift') {
               expiredNotificationText = `⚠️ Siz gift yuborishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
             } else if (row.order_type === 'premium') {
               expiredNotificationText = `⚠️ Siz premium sotib olishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
             }
             
             await bot.telegram.sendMessage(row.owner_user_id, expiredNotificationText);
@@ -493,19 +493,19 @@ setInterval(async () => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
             } else if (row.order_type === 'gift') {
               expiredNotificationText = `⚠️ Siz gift yuborishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
             } else if (row.order_type === 'premium') {
               expiredNotificationText = `⚠️ Siz premium sotib olishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
             }
             
             await bot.telegram.sendMessage(row.owner_user_id, expiredNotificationText);
@@ -1203,8 +1203,8 @@ function parseTelegramChatId(envVal, fallback) {
 
 const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003360169974);
 const ERROR_LOG_CHANNEL_ID = parseTelegramChatId(process.env.ERROR_LOG_CHANNEL_ID, -1003919789850);
-const SUBSCRIPTION_CHANNEL = "@StarsxPremium"; // Majburiy obuna / yangiliklar (https://t.me/StarsxPremium)
-const WEBAPP_URL = process.env.WEBAPP_URL || "https://starsx.starstg.uz";
+const SUBSCRIPTION_CHANNEL = "@StarsPaymee"; // Majburiy obuna / yangiliklar (https://t.me/StarsPaymee)
+const WEBAPP_URL = process.env.WEBAPP_URL || "https://starspaymee.starstg.uz";
 let bot = null;
 if (BOT_TOKEN) {
   bot = new Telegraf(BOT_TOKEN);
@@ -1222,7 +1222,7 @@ async function sendWelcomeMessage(userId, userName) {
   try {
     const welcomeText = `🎉 <b>Xush kelibsiz, ${userName || 'do\'stim'}!</b>
 
-✨ <b>StarsJoy</b> — Telegram Stars va Premium xarid qilishning eng qulay va ishonchli platformasi!
+✨ <b>StarsPaymee</b> — Telegram Stars va Premium xarid qilishning eng qulay va ishonchli platformasi!
 
 📢 Kanalimizga obuna bo'ling va barcha yangiliklar, chegirmalar va maxsus takliflardan xabardor bo'ling!
 
@@ -1230,14 +1230,14 @@ Stars xarid qilish
 Premium sotib olish
 Do'stlaringizga Gift yuborish
 
-Barchasi bir joyda — <b>StarsJoy</b>!`;
+Barchasi bir joyda — <b>StarsPaymee</b>!`;
 
     await bot.telegram.sendMessage(userId, welcomeText, {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '�Start', url: 'https://t.me/StarsjoyBot?start=welcome' }
+            { text: '🚀 Start', url: 'https://t.me/StarsPaymee_bot?start=welcome' }
           ],
           
         ]
@@ -2701,7 +2701,7 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
@@ -3449,7 +3449,7 @@ app.post("/api/premium", orderLimiter, telegramAuth, async (req, res) => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
@@ -4441,7 +4441,7 @@ app.get("/api/referral/link/:user_id", telegramAuth, async (req, res) => {
     const userData = user.rows[0];
     
     // Telegram Mini App Link
-    const referralLink = `https://t.me/StarsjoyBot/starsjoy?startapp=${userData.referral_code}`;
+    const referralLink = `https://t.me/StarsPaymee_bot/starspaymee?startapp=${userData.referral_code}`;
     res.json({
       name: userData.name,
       username: userData.username,
@@ -5694,7 +5694,7 @@ const uniqueSum = await generateUniqueOrderSum(finalAmount, client);
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsjoySupport`;
+👉 @StarsPaymeeSupport`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,

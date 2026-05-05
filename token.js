@@ -15,10 +15,10 @@ const pool = new Pool({
 const ADMIN_IDS = process.env.ADMIN_IDS.split(',').map(id => Number(id));
 
 // Mini app URL
-const APP_URL = (process.env.WEBAPP_URL || 'https://starsx.starstg.uz').replace(/\/$/, '');
+const APP_URL = (process.env.WEBAPP_URL || 'https://starspaymee.starstg.uz').replace(/\/$/, '');
 
-// Majburiy obuna — yangiliklar kanali (https://t.me/StarsxPremium)
-const REQUIRED_CHANNEL = '@StarsxPremium';
+// Majburiy obuna — yangiliklar kanali (https://t.me/StarsPaymee)
+const REQUIRED_CHANNEL = '@StarsPaymee';
 
 function parseTelegramChatId(envVal, fallback) {
   if (envVal === undefined || envVal === null || String(envVal).trim() === '') return fallback;
@@ -59,7 +59,7 @@ function getSubscribeText() {
 
 function getSubscribeKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.url('📢 Kanalga obuna bo\'lish', 'https://t.me/StarsxPremium')],
+    [Markup.button.url('📢 Kanalga obuna bo\'lish', 'https://t.me/StarsPaymee')],
     [Markup.button.callback('✅ Tekshirish', 'check_subscription')]
   ]);
 }
@@ -68,9 +68,10 @@ function getSubscribeKeyboard() {
 // ===============================
 // CHIROYLI START XABARI
 // ===============================
-function getStartText(name) {
+function getStartText(_name) {
+  const offerUrl = `${APP_URL}/oferta`;
   return `
-⭐ StarsJoy'ga xush kelibsiz!
+⭐ StarsPaymee ga xush kelibsiz!
 
 Telegram Stars, Premium va Gifts - barchasini bir joydan, tez va qulay sotib oling.
 
@@ -84,7 +85,7 @@ Boshlash uchun START tugmani bosing 👇
 
 🇬🇧 By tapping «START», you agree to our public offer.
 
-📄 Oferta: starsjoy.uz/oferta
+📄 Oferta: ${offerUrl}
 
 `;
 }
