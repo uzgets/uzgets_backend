@@ -241,7 +241,11 @@ export async function initBalanceClient() {
                 });
 
                 if (!res.ok) {
-                    console.log("⭐ Starsda topilmadi → PREMIUM urinyapti...");
+                    const errBody = await res.text().catch(() => "");
+                    console.log(
+                        `⭐ Stars match muvaffaqiyatsiz HTTP ${res.status} → PREMIUM urinyapti...`,
+                        errBody ? errBody.slice(0, 300) : ""
+                    );
                     res = await fetch(MATCH_API_PREMIUM, {
                         method: "POST",
                         headers: {
@@ -256,7 +260,11 @@ export async function initBalanceClient() {
                     const result = await res.json();
                     console.log("🎉 Muvaffaqiyatli topildi:", result);
                 } else {
-                    console.log("⭐💎 Stars/Premium da topilmadi → GIFT urinyapti...");
+                    const premBody = await res.text().catch(() => "");
+                    console.log(
+                        "⭐💎 Stars/Premium da topilmadi → GIFT urinyapti...",
+                        premBody ? premBody.slice(0, 300) : ""
+                    );
                     res = await fetch(MATCH_API_GIFT, {
                         method: "POST",
                         headers: {

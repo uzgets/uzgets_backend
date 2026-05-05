@@ -244,6 +244,16 @@ function internalAuth(req, res, next) {
   
   next();
 }
+
+/** SMS/bot match endpointlari: Docker yoki boshqa hostdan kelishi mumkin — faqat maxfiy kalit. */
+function internalSecretAuth(req, res, next) {
+  const key = req.headers['x-internal-key'];
+  if (key !== INTERNAL_SECRET) {
+    console.warn('🚫 Internal match API: noto\'g\'ri yoki yo\'q kalit');
+    return res.status(403).json({ error: 'Noto\'g\'ri kalit' });
+  }
+  next();
+}
 const PREMIUM_3 = parseInt(process.env.VITE_PREMIUM_3);
 const PREMIUM_6 = parseInt(process.env.VITE_PREMIUM_6);
 const PREMIUM_12 = parseInt(process.env.VITE_PREMIUM_12);
@@ -2794,7 +2804,7 @@ app.get("/api/transactions/:id", telegramAuth, async (req, res) => {
 // ======================
 // 5️⃣ Telegram bot to‘lovni tasdiqlaydi — RobynHood versiyasi
 // ======================
-app.post("/api/payments/match", internalAuth, async (req, res) => {
+app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
   try {
     const { card_last4, amount } = req.body;
     if (!card_last4 || !amount)
@@ -2809,7 +2819,7 @@ app.post("/api/payments/match", internalAuth, async (req, res) => {
          WHERE summ = $1 
            AND payment_status = 'pending'
            AND status = 'pending'
-           AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '15 minutes'
+           AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC 
          LIMIT 1
          FOR UPDATE SKIP LOCKED
@@ -3498,7 +3508,7 @@ Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 //-----------------------
 // 💳 PREMIUM PAYMENT MATCH
 //-----------------------
-app.post("/api/premium/match", internalAuth, async (req, res) => {
+app.post("/api/premium/match", internalSecretAuth, async (req, res) => {
   try {
     console.log("\n=============== 💳 PREMIUM PAYMENT MATCH ===============");
     console.log("📥 Keldi:", req.body);
@@ -3518,7 +3528,7 @@ app.post("/api/premium/match", internalAuth, async (req, res) => {
            AND payment_status='pending' 
            AND status='pending'
            AND order_type='premium'
-           AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '15 minutes'
+           AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC LIMIT 1 
          FOR UPDATE SKIP LOCKED
        ) 
@@ -5781,7 +5791,7 @@ app.get("/api/gift/status/:id", telegramAuth, async (req, res) => {
 // ======================
 // 🎁 GIFT MATCH — SMS to'lov tasdiqlash (orders jadvalidan)
 // ======================
-app.post("/api/gift/match", internalAuth, async (req, res) => {
+app.post("/api/gift/match", internalSecretAuth, async (req, res) => {
   try {
     const { card_last4, amount } = req.body;
     if (!card_last4 || !amount) {
@@ -5797,7 +5807,7 @@ app.post("/api/gift/match", internalAuth, async (req, res) => {
            AND payment_status = 'pending' 
            AND status = 'pending'
            AND order_type = 'gift'
-           AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '15 minutes'
+           AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC
          LIMIT 1
          FOR UPDATE SKIP LOCKED
@@ -6363,7 +6373,7 @@ app.get("/api/v2/order/:id", telegramAuth, async (req, res) => {
   }
 });
 // 💳 UNIFIED PAYMENT MATCH — To'lov tasdiqlanishi
-app.post("/api/v2/payments/match", internalAuth, async (req, res) => {
+app.post("/api/v2/payments/match", internalSecretAuth, async (req, res) => {
   try {
     console.log("\n=============== 💳 UNIFIED PAYMENT MATCH ===============");
     console.log("📥 Keldi:", req.body);
@@ -6383,7 +6393,7 @@ app.post("/api/v2/payments/match", internalAuth, async (req, res) => {
          WHERE summ = $1 
            AND payment_status = 'pending' 
            AND status = 'pending'
-           AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '15 minutes'
+           AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC 
          LIMIT 1
          FOR UPDATE SKIP LOCKED
