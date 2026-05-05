@@ -15,13 +15,19 @@ const pool = new Pool({
 const ADMIN_IDS = process.env.ADMIN_IDS.split(',').map(id => Number(id));
 
 // Mini app URL
-const APP_URL = process.env.WEBAPP_URL;
+const APP_URL = (process.env.WEBAPP_URL || 'https://starsx.starstg.uz').replace(/\/$/, '');
 
-// Majburiy obuna kanali
-const REQUIRED_CHANNEL = '@starsjoy';
+// Majburiy obuna — yangiliklar kanali (https://t.me/StarsxPremium)
+const REQUIRED_CHANNEL = '@StarsxPremium';
 
-// Buyurtmalar kanali
-const ORDERS_CHANNEL = -1003752422150;
+function parseTelegramChatId(envVal, fallback) {
+  if (envVal === undefined || envVal === null || String(envVal).trim() === '') return fallback;
+  const n = Number(String(envVal).trim());
+  return Number.isFinite(n) ? n : fallback;
+}
+
+// Buyurtmalar kanali (.env ORDERS_CHANNEL)
+const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003360169974);
 
 // Broadcast state - admin xabar yuborish uchun
 const broadcastState = new Map();
@@ -53,7 +59,7 @@ function getSubscribeText() {
 
 function getSubscribeKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.url('📢 Kanalga obuna bo\'lish', 'https://t.me/starsjoy')],
+    [Markup.button.url('📢 Kanalga obuna bo\'lish', 'https://t.me/StarsxPremium')],
     [Markup.button.callback('✅ Tekshirish', 'check_subscription')]
   ]);
 }
@@ -172,7 +178,7 @@ bot.start(async (ctx) => {
     getStartText(fullName),
     Markup.inlineKeyboard([
         [
-          Markup.button.webApp("START", "https://vitahealth.uz/")
+          Markup.button.webApp("START", `${APP_URL}/`)
         ],
         
     ])
@@ -269,7 +275,7 @@ bot.action('check_subscription', async (ctx) => {
     getStartText(fullName),
     Markup.inlineKeyboard([
         [
-          Markup.button.webApp("START", "https://vitahealth.uz/")
+          Markup.button.webApp("START", `${APP_URL}/`)
         ],
         
     ])

@@ -10,6 +10,8 @@ import { Telegraf } from 'telegraf';
 dotenv.config();
 const { Pool } = pkg;
 const app = express();
+const PORT = Number(process.env.PORT) || 1001;
+const INTERNAL_API_BASE = (process.env.INTERNAL_API_BASE || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 // ======================
 // 🛡️ Trust Proxy — Nginx reverse proxy uchun
 // ======================
@@ -25,15 +27,15 @@ app.use(helmet({
 // 🛡️ SECURITY: CORS — faqat ruxsat etilgan domenlar
 // ======================
 const ALLOWED_ORIGINS = [
-  'https://vitahealth.uz',
-  'https://www.vitahealth.uz',
+  'https://starsx.starstg.uz',
+  'https://www.starsx.starstg.uz',
   'https://web.telegram.org',
   'https://t.me',
   process.env.WEBAPP_URL,
 ].filter(Boolean);
 // Development uchun localhost ham qo'shiladi
 if (process.env.NODE_ENV !== 'production') {
-  ALLOWED_ORIGINS.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000');
+  ALLOWED_ORIGINS.push('http://localhost:1000');
 }
 app.use(cors({
   origin: function (origin, callback) {
@@ -1197,10 +1199,10 @@ function parseTelegramChatId(envVal, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003752422150);
-const ERROR_LOG_CHANNEL_ID = parseTelegramChatId(process.env.ERROR_LOG_CHANNEL_ID, -1003836618718);
-const SUBSCRIPTION_CHANNEL = "@starsjoyuz"; // Obuna bo'lish kerak bo'lgan kanal
-const WEBAPP_URL = process.env.WEBAPP_URL || "https://vitahealth.uz";
+const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003360169974);
+const ERROR_LOG_CHANNEL_ID = parseTelegramChatId(process.env.ERROR_LOG_CHANNEL_ID, -1003919789850);
+const SUBSCRIPTION_CHANNEL = "@StarsxPremium"; // Majburiy obuna / yangiliklar (https://t.me/StarsxPremium)
+const WEBAPP_URL = process.env.WEBAPP_URL || "https://starsx.starstg.uz";
 let bot = null;
 if (BOT_TOKEN) {
   bot = new Telegraf(BOT_TOKEN);
@@ -2656,7 +2658,7 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
     );
     // BALANCE CHECKER GA SIGNAL
     try {
-      fetch('http://localhost:5001/api/balance/refresh', {
+      fetch(`${INTERNAL_API_BASE}/api/balance/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: order.id, type: 'unified' })
@@ -3407,7 +3409,7 @@ app.post("/api/premium", orderLimiter, telegramAuth, async (req, res) => {
     console.log("🎉 ORDER CREATE →", order);
     //  BALANCE CHECKER GA SIGNAL - balansni yangilash
     try {
-      fetch('http://localhost:5001/api/balance/refresh', {
+      fetch(`${INTERNAL_API_BASE}/api/balance/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: order.id, type: 'premium' })
@@ -5651,7 +5653,7 @@ const uniqueSum = await generateUniqueOrderSum(finalAmount, client);
 
     // BALANCE CHECKER GA SIGNAL
     try {
-      fetch('http://localhost:5001/api/balance/refresh', {
+      fetch(`${INTERNAL_API_BASE}/api/balance/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: order.id, type: 'unified' })
@@ -6273,7 +6275,7 @@ app.post("/api/v2/order/create", orderLimiter, telegramAuth, async (req, res) =>
     
     // Balance checker ga signal
     try {
-      fetch('http://localhost:5001/api/balance/refresh', {
+      fetch(`${INTERNAL_API_BASE}/api/balance/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: order.id, type: 'unified' })
@@ -7030,8 +7032,6 @@ app.get("/api/debug/slots", adminAuth, async (req, res) => {
 // ======================
 // run server
 // ======================
-const PORT = process.env.PORT;
-
 // 🚀 Server start - cache ni yuklash
 loadPendingOrdersToCache().then(() => {
   console.log(`✅ Cache yuklandi: ${globalUsedPrices.size} ta pending order`);
