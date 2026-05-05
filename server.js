@@ -14,6 +14,10 @@ const PORT = Number(process.env.PORT) || 1001;
 const INTERNAL_API_BASE = (process.env.INTERNAL_API_BASE || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT) || 1002;
 const BALANCE_CHECKER_URL = (process.env.BALANCE_CHECKER_URL || `http://127.0.0.1:${BALANCE_CHECKER_PORT}`).replace(/\/$/, '');
+/** Referral: https://t.me/BotUsername/mini_app_short_name — ?startapp= referral_code qo'shiladi */
+const TELEGRAM_MINI_APP_REFERRAL_BASE = (
+  process.env.TELEGRAM_MINI_APP_REFERRAL_BASE || "https://t.me/StarsPaymee_bot/starspaymee"
+).replace(/\/$/, "");
 // ======================
 // 🛡️ Trust Proxy — Nginx reverse proxy uchun
 // ======================
@@ -331,7 +335,7 @@ async function loadPendingOrdersToCache() {
       SET status = 'expired', payment_status = 'expired'
       WHERE status = 'pending' 
         AND payment_status = 'pending'
-        AND created_at < (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'
+        AND created_at < NOW() - INTERVAL '8 minutes'
       RETURNING id, owner_user_id, order_type
     `);
     
@@ -387,7 +391,7 @@ Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
     
     // Faqat oxirgi 5 daqiqadagi pending orderlarni yuklash
     const result = await pool.query(
-      "SELECT id, summ, order_type, type_amount, created_at FROM orders WHERE status = 'pending' AND payment_status = 'pending' AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'"
+      "SELECT id, summ, order_type, type_amount, created_at FROM orders WHERE status = 'pending' AND payment_status = 'pending' AND created_at >= NOW() - INTERVAL '8 minutes'"
     );
     
     globalUsedPrices.clear();
@@ -473,7 +477,7 @@ setInterval(async () => {
       SET status = 'expired', payment_status = 'expired'
       WHERE status = 'pending' 
         AND payment_status = 'pending'
-        AND created_at < (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'
+        AND created_at < NOW() - INTERVAL '8 minutes'
       RETURNING id, summ, applied_promocode, owner_user_id, order_type
     `);
     
@@ -544,7 +548,7 @@ setInterval(async () => {
   try {
     // Bazadan haqiqiy pending orderlarni olish (faqat oxirgi 5 daqiqadagi)
     const result = await pool.query(
-      "SELECT summ FROM orders WHERE status = 'pending' AND payment_status = 'pending' AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'"
+      "SELECT summ FROM orders WHERE status = 'pending' AND payment_status = 'pending' AND created_at >= NOW() - INTERVAL '8 minutes'"
     );
     
     const dbPrices = new Set(result.rows.map(r => r.summ));
@@ -559,7 +563,7 @@ setInterval(async () => {
     // ===== SLOT CACHE SINXRONIZATSIYASI =====
     // Bazadan barcha pending orderlarni olish (slotlarni sinxronlash uchun)
     const pendingOrders = await pool.query(
-      "SELECT id, order_type, type_amount FROM orders WHERE status = 'pending' AND payment_status = 'pending' AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'"
+      "SELECT id, order_type, type_amount FROM orders WHERE status = 'pending' AND payment_status = 'pending' AND created_at >= NOW() - INTERVAL '8 minutes'"
     );
     
     const pendingOrderIds = new Set(pendingOrders.rows.map(r => r.id));
@@ -2078,7 +2082,7 @@ app.get("/api/stars/price/:stars", async (req, res) => {
       `SELECT DISTINCT summ FROM orders 
        WHERE order_type IN ('gift', 'premium') 
        AND status = 'pending' AND payment_status = 'pending'
-       AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'`
+       AND created_at >= NOW() - INTERVAL '8 minutes'`
     );
     conflictPrices = new Set(giftPremiumPrices.rows.map(r => r.summ));
   } catch (err) {
@@ -2483,7 +2487,7 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
         `SELECT id, summ, created_at FROM orders 
          WHERE order_type = 'stars' AND type_amount = $1 
          AND status = 'pending' AND payment_status = 'pending'
-         AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'`,
+         AND created_at >= NOW() - INTERVAL '8 minutes'`,
         [starsNum]
       );
       
@@ -2511,7 +2515,7 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
         `SELECT DISTINCT summ FROM orders 
          WHERE order_type IN ('gift', 'premium') 
          AND status = 'pending' AND payment_status = 'pending'
-         AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'`
+         AND created_at >= NOW() - INTERVAL '8 minutes'`
       );
       const conflictPrices = new Set(giftPremiumPrices.rows.map(r => r.summ));
       
@@ -2806,12 +2810,39 @@ app.get("/api/transactions/:id", telegramAuth, async (req, res) => {
 // ======================
 app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
   try {
-    const { card_last4, amount } = req.body;
+    const { card_last4, amount, allowed_order_types } = req.body;
     if (!card_last4 || !amount)
       return res.status(400).json({ error: "card_last4 va amount kerak" });
-    // 🔐 ATOMIC UPDATE - orders jadvalidan
-    const updated = await pool.query(
-      `UPDATE orders
+
+    const typeFilter =
+      Array.isArray(allowed_order_types) && allowed_order_types.length > 0
+        ? allowed_order_types.filter((t) =>
+            ["stars", "premium", "gift"].includes(String(t))
+          )
+        : null;
+
+    const updated =
+      typeFilter && typeFilter.length > 0
+        ? await pool.query(
+            `UPDATE orders
+       SET payment_status = 'paid',
+           status = CASE WHEN status = 'pending' THEN 'processing' ELSE status END
+       WHERE id = (
+         SELECT id FROM orders 
+         WHERE summ = $1 
+           AND payment_status = 'pending'
+           AND status = 'pending'
+           AND order_type = ANY($2::text[])
+           AND created_at >= NOW() - INTERVAL '15 minutes'
+         ORDER BY id DESC 
+         LIMIT 1
+         FOR UPDATE SKIP LOCKED
+       )
+       RETURNING *`,
+            [amount, typeFilter]
+          )
+        : await pool.query(
+            `UPDATE orders
        SET payment_status = 'paid',
            status = CASE WHEN status = 'pending' THEN 'processing' ELSE status END
        WHERE id = (
@@ -2825,8 +2856,8 @@ app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`,
-      [amount]
-    );
+            [amount]
+          );
     if (!updated.rows.length)
       return res.status(404).json({ message: "Pending payment not found" });
     const order = updated.rows[0];
@@ -3276,7 +3307,7 @@ app.post("/api/premium", orderLimiter, telegramAuth, async (req, res) => {
       `SELECT id, summ, created_at FROM orders 
        WHERE order_type = 'premium' AND type_amount = $1 
        AND status = 'pending' AND payment_status = 'pending'
-       AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'`,
+       AND created_at >= NOW() - INTERVAL '8 minutes'`,
       [months]
     );
     
@@ -4462,8 +4493,7 @@ app.get("/api/referral/link/:user_id", telegramAuth, async (req, res) => {
     }
     const userData = user.rows[0];
     
-    // Telegram Mini App Link
-    const referralLink = `https://t.me/StarsPaymee_bot/starspaymee?startapp=${userData.referral_code}`;
+    const referralLink = `${TELEGRAM_MINI_APP_REFERRAL_BASE}?startapp=${encodeURIComponent(userData.referral_code)}`;
     res.json({
       name: userData.name,
       username: userData.username,
@@ -4791,7 +4821,7 @@ app.patch("/api/admin/discount-packages/:id", adminAuth, async (req, res) => {
            discount_percent = COALESCE($2, discount_percent),
            discounted_price = COALESCE($3, discounted_price),
            is_active = COALESCE($4, is_active),
-           updated_at = NOW() AT TIME ZONE 'Asia/Tashkent'
+           updated_at = NOW()
        WHERE id = $5
        RETURNING *`,
       [stars, discount_percent, discounted_price, is_active, id]
@@ -5505,7 +5535,7 @@ app.post("/api/gift/order", orderLimiter, telegramAuth, async (req, res) => {
       `SELECT id, summ, created_at FROM orders 
        WHERE order_type = 'gift' AND type_amount = $1 
        AND status = 'pending' AND payment_status = 'pending'
-       AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'`,
+       AND created_at >= NOW() - INTERVAL '8 minutes'`,
       [serverStars]
     );
     
@@ -7014,7 +7044,7 @@ app.get("/api/debug/slots", adminAuth, async (req, res) => {
     // Database pending orders
     const dbPending = await pool.query(`
       SELECT order_type, type_amount, COUNT(*) as count,
-             SUM(CASE WHEN created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes' THEN 1 ELSE 0 END) as recent_count
+             SUM(CASE WHEN created_at >= NOW() - INTERVAL '8 minutes' THEN 1 ELSE 0 END) as recent_count
       FROM orders 
       WHERE status = 'pending' AND payment_status = 'pending'
       GROUP BY order_type, type_amount
@@ -7027,7 +7057,7 @@ app.get("/api/debug/slots", adminAuth, async (req, res) => {
              EXTRACT(EPOCH FROM (NOW() - created_at)) as age_seconds
       FROM orders 
       WHERE order_type = 'stars' AND status = 'pending' AND payment_status = 'pending'
-      AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'
+      AND created_at >= NOW() - INTERVAL '8 minutes'
       ORDER BY type_amount, created_at
     `);
     

@@ -21,7 +21,10 @@ const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT);
 
 if (!process.env.INTERNAL_API_SECRET) {
     console.error('❌ OGOHLANTIRISH: INTERNAL_API_SECRET .env da yo\'q!');
-    console.error('❌ SMS listener match API ga 403 oladi! .env ga INTERNAL_API_SECRET qo\'shing!');
+    console.error('❌ SMS listener match API 403 beradi — backend bilan bir xil kalitni .env ga qo\'ying!');
+}
+if (!MATCH_API_GIFT) {
+    console.error('❌ MATCH_API_GIFT .env da yo\'q! Gift SMS tasdiqlanmaydi.');
 }
 if (!MATCH_API_STARS || !MATCH_API_PREMIUM) {
     console.error('❌ MATCH_API_STARS yoki MATCH_API_PREMIUM .env da yo\'q!');
@@ -230,14 +233,17 @@ export async function initBalanceClient() {
                     timestamp: Date.now()
                 });
 
-                // Stars API
+                // Stars API — faqat stars buyurtmasi (bir xil summali gift/premium bilan aralashmasin)
                 let res = await fetch(MATCH_API_STARS, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "X-Internal-Key": INTERNAL_SECRET
                     },
-                    body: JSON.stringify(parsed),
+                    body: JSON.stringify({
+                        ...parsed,
+                        allowed_order_types: ["stars"],
+                    }),
                 });
 
                 if (!res.ok) {
@@ -265,19 +271,23 @@ export async function initBalanceClient() {
                         "⭐💎 Stars/Premium da topilmadi → GIFT urinyapti...",
                         premBody ? premBody.slice(0, 300) : ""
                     );
-                    res = await fetch(MATCH_API_GIFT, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-Internal-Key": INTERNAL_SECRET
-                        },
-                        body: JSON.stringify(parsed),
-                    });
+                    if (!MATCH_API_GIFT) {
+                        console.log("⚠️ MATCH_API_GIFT sozlanmagan — gift match o'tkazildi");
+                    } else {
+                        res = await fetch(MATCH_API_GIFT, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-Internal-Key": INTERNAL_SECRET
+                            },
+                            body: JSON.stringify(parsed),
+                        });
+                    }
 
-                    if (res.ok) {
+                    if (MATCH_API_GIFT && res.ok) {
                         const result = await res.json();
                         console.log("🎁 Gift to'lov topildi:", result);
-                    } else {
+                    } else if (MATCH_API_GIFT) {
                         console.log("⚠️ Hech qaysi bazada topilmadi");
                     }
                 }

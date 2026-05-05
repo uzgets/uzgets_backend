@@ -32,7 +32,7 @@ async function check() {
       SELECT COUNT(*) as old_count 
       FROM orders 
       WHERE status = 'pending' AND payment_status = 'pending'
-        AND created_at < (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'
+        AND created_at < NOW() - INTERVAL '8 minutes'
     `);
     console.log('Old pending orders (>8 min):', old.rows[0].old_count);
     
@@ -41,7 +41,7 @@ async function check() {
       SELECT type_amount, summ, created_at 
       FROM orders 
       WHERE order_type = 'stars' AND status = 'pending' AND payment_status = 'pending'
-        AND created_at >= (NOW() AT TIME ZONE 'Asia/Tashkent') - INTERVAL '8 minutes'
+        AND created_at >= NOW() - INTERVAL '8 minutes'
       ORDER BY type_amount, summ
     `);
     console.log('\n⭐ Recent pending STARS orders (last 8 min):');
