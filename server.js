@@ -12,6 +12,8 @@ const { Pool } = pkg;
 const app = express();
 const PORT = Number(process.env.PORT) || 1001;
 const INTERNAL_API_BASE = (process.env.INTERNAL_API_BASE || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
+const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT) || 1002;
+const BALANCE_CHECKER_URL = (process.env.BALANCE_CHECKER_URL || `http://127.0.0.1:${BALANCE_CHECKER_PORT}`).replace(/\/$/, '');
 // ======================
 // 🛡️ Trust Proxy — Nginx reverse proxy uchun
 // ======================
@@ -5828,7 +5830,7 @@ async function sendGiftToUser(order) {
     // recipient / recipient_username — qabul qiluvchi (username); yuboruvchi owner_user_id + users jadvali
     console.log(`🎁 sendGiftToUser: #${order.id} → @${order.recipient} | gift: ${order.gift_id}`);
     // balanceChecker.js dagi userbot orqali gift yuborish
-    const giftRes = await fetch('http://localhost:5002/api/gift/send-userbot', {
+    const giftRes = await fetch(`${BALANCE_CHECKER_URL}/api/gift/send-userbot`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -6035,8 +6037,6 @@ app.get("/api/admin/wallet-info", adminAuth, async (req, res) => {
 // ======================
 // ⭐ ADMIN — User Stars Balance (Userbot GramJS orqali)
 // ======================
-const BALANCE_CHECKER_URL = process.env.BALANCE_CHECKER_URL || 'http://localhost:5002';
-
 app.get("/api/admin/bot-stars-balance", adminAuth, async (req, res) => {
   try {
     // Userbot orqali stars balance olish

@@ -15,9 +15,9 @@ const TARGET_CARD_SUFFIX = process.env.TARGET_CARD_SUFFIX?.replace(/\D/g, "").sl
 
 const MATCH_API_STARS = process.env.MATCH_API_STARS;
 const MATCH_API_PREMIUM = process.env.MATCH_API_PREMIUM;
-const MATCH_API_GIFT = process.env.MATCH_API_GIFT || 'http://localhost:1001/api/gift/match';
+const MATCH_API_GIFT = process.env.MATCH_API_GIFT;
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || '';
-const BALANCE_CHECKER_PORT = 5002;
+const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT);
 
 if (!process.env.INTERNAL_API_SECRET) {
     console.error('❌ OGOHLANTIRISH: INTERNAL_API_SECRET .env da yo\'q!');
