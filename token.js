@@ -15,10 +15,10 @@ const pool = new Pool({
 const ADMIN_IDS = process.env.ADMIN_IDS.split(',').map(id => Number(id));
 
 // Mini app URL
-const APP_URL = (process.env.WEBAPP_URL || 'https://starspaymee.starstg.uz').replace(/\/$/, '');
+const APP_URL = (process.env.WEBAPP_URL || 'https://stars.uzgets.uz').replace(/\/$/, '');
 
-// Majburiy obuna — yangiliklar kanali (https://t.me/StarsPaymee)
-const REQUIRED_CHANNEL = '@StarsPaymee';
+// Majburiy obuna — yangiliklar kanali (https://t.me/uzgets)
+const REQUIRED_CHANNEL = '@uzgets';
 
 function parseTelegramChatId(envVal, fallback) {
   if (envVal === undefined || envVal === null || String(envVal).trim() === '') return fallback;
@@ -27,7 +27,7 @@ function parseTelegramChatId(envVal, fallback) {
 }
 
 // Buyurtmalar kanali (.env ORDERS_CHANNEL)
-const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003360169974);
+const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003986767336);
 
 // Broadcast state - admin xabar yuborish uchun
 const broadcastState = new Map();
@@ -59,7 +59,7 @@ function getSubscribeText() {
 
 function getSubscribeKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.url('📢 Kanalga obuna bo\'lish', 'https://t.me/StarsPaymee')],
+    [Markup.button.url('📢 Kanalga obuna bo\'lish', 'https://t.me/uzgets')],
     [Markup.button.callback('✅ Tekshirish', 'check_subscription')]
   ]);
 }
@@ -71,9 +71,9 @@ function getSubscribeKeyboard() {
 function getStartText(_name) {
   const offerUrl = `${APP_URL}/oferta`;
   return `
-⭐ StarsPaymee ga xush kelibsiz!
+⭐ Uzgets ga xush kelibsiz!
 
-Telegram Stars, Premium va Gifts - barchasini bir joydan, tez va qulay sotib oling.
+Telegram Stars va Premium - barchasini bir joydan, tez va qulay sotib oling.
 
 Boshlash uchun START tugmani bosing 👇
 

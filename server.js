@@ -10,13 +10,13 @@ import { Telegraf } from 'telegraf';
 dotenv.config();
 const { Pool } = pkg;
 const app = express();
-const PORT = Number(process.env.PORT) || 1001;
+const PORT = Number(process.env.PORT) || 7001;
 const INTERNAL_API_BASE = (process.env.INTERNAL_API_BASE || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
-const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT) || 1002;
+const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT) || 7002;
 const BALANCE_CHECKER_URL = (process.env.BALANCE_CHECKER_URL || `http://127.0.0.1:${BALANCE_CHECKER_PORT}`).replace(/\/$/, '');
 /** Referral: https://t.me/BotUsername/mini_app_short_name — ?startapp= referral_code qo'shiladi */
 const TELEGRAM_MINI_APP_REFERRAL_BASE = (
-  process.env.TELEGRAM_MINI_APP_REFERRAL_BASE || "https://t.me/StarsPaymee_bot/starspaymee"
+  process.env.TELEGRAM_MINI_APP_REFERRAL_BASE || "https://t.me/Uzgets_bot/uzgets"
 ).replace(/\/$/, "");
 // ======================
 // 🛡️ Trust Proxy — Nginx reverse proxy uchun
@@ -33,15 +33,15 @@ app.use(helmet({
 // 🛡️ SECURITY: CORS — faqat ruxsat etilgan domenlar
 // ======================
 const ALLOWED_ORIGINS = [
-  'https://starspaymee.starstg.uz',
-  'https://www.starspaymee.starstg.uz',
+  'https://stars.uzgets.uz',
+  'https://www.stars.uzgets.uz',
   'https://web.telegram.org',
   'https://t.me',
   process.env.WEBAPP_URL,
 ].filter(Boolean);
 // Development uchun localhost ham qo'shiladi
 if (process.env.NODE_ENV !== 'production') {
-  ALLOWED_ORIGINS.push('http://localhost:1000');
+  ALLOWED_ORIGINS.push('http://localhost:7000');
 }
 app.use(cors({
   origin: function (origin, callback) {
@@ -359,19 +359,19 @@ async function loadPendingOrdersToCache() {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
             } else if (row.order_type === 'gift') {
               expiredNotificationText = `⚠️ Siz gift yuborishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
             } else if (row.order_type === 'premium') {
               expiredNotificationText = `⚠️ Siz premium sotib olishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
             }
             
             await bot.telegram.sendMessage(row.owner_user_id, expiredNotificationText);
@@ -507,19 +507,19 @@ setInterval(async () => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
             } else if (row.order_type === 'gift') {
               expiredNotificationText = `⚠️ Siz gift yuborishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
             } else if (row.order_type === 'premium') {
               expiredNotificationText = `⚠️ Siz premium sotib olishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
             }
             
             await bot.telegram.sendMessage(row.owner_user_id, expiredNotificationText);
@@ -1215,10 +1215,10 @@ function parseTelegramChatId(envVal, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003360169974);
-const ERROR_LOG_CHANNEL_ID = parseTelegramChatId(process.env.ERROR_LOG_CHANNEL_ID, -1003919789850);
-const SUBSCRIPTION_CHANNEL = "@StarsPaymee"; // Majburiy obuna / yangiliklar (https://t.me/StarsPaymee)
-const WEBAPP_URL = process.env.WEBAPP_URL || "https://starspaymee.starstg.uz";
+const ORDERS_CHANNEL = parseTelegramChatId(process.env.ORDERS_CHANNEL, -1003986767336);
+const ERROR_LOG_CHANNEL_ID = parseTelegramChatId(process.env.ERROR_LOG_CHANNEL_ID, -1003963671866);
+const SUBSCRIPTION_CHANNEL = "@uzgets"; // Majburiy obuna / yangiliklar (https://t.me/uzgets)
+const WEBAPP_URL = process.env.WEBAPP_URL || "https://stars.uzgets.uz";
 let bot = null;
 if (BOT_TOKEN) {
   bot = new Telegraf(BOT_TOKEN);
@@ -1236,22 +1236,21 @@ async function sendWelcomeMessage(userId, userName) {
   try {
     const welcomeText = `🎉 <b>Xush kelibsiz, ${userName || 'do\'stim'}!</b>
 
-✨ <b>StarsPaymee</b> — Telegram Stars va Premium xarid qilishning eng qulay va ishonchli platformasi!
+✨ <b>Uzgets</b> — Telegram Stars va Premium xarid qilishning eng qulay va ishonchli platformasi!
 
 📢 Kanalimizga obuna bo'ling va barcha yangiliklar, chegirmalar va maxsus takliflardan xabardor bo'ling!
 
 Stars xarid qilish
 Premium sotib olish
-Do'stlaringizga Gift yuborish
 
-Barchasi bir joyda — <b>StarsPaymee</b>!`;
+Barchasi bir joyda — <b>Uzgets</b>!`;
 
     await bot.telegram.sendMessage(userId, welcomeText, {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '🚀 Start', url: 'https://t.me/StarsPaymee_bot?start=welcome' }
+            { text: '🚀 Start', url: 'https://t.me/Uzgets_bot?start=welcome' }
           ],
           
         ]
@@ -2727,7 +2726,7 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
@@ -3502,7 +3501,7 @@ app.post("/api/premium", orderLimiter, telegramAuth, async (req, res) => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
@@ -5395,7 +5394,7 @@ async function sendChannelNotification(orderId, type) {
     const res = await pool.query(`SELECT * FROM orders WHERE id = $1`, [orderId]);
     const order = res.rows[0];
     if (!order) return;
-    const channelId = -1003752422150; // Orders channel ID
+    const channelId = ORDERS_CHANNEL;
     const botToken = process.env.BOT_TOKEN;
     
     if (!botToken) {
@@ -5746,7 +5745,7 @@ const uniqueSum = await generateUniqueOrderSum(finalAmount, client);
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @StarsPaymeeSupport`;
+👉 @uzgets`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,

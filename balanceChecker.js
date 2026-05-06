@@ -15,16 +15,12 @@ const TARGET_CARD_SUFFIX = process.env.TARGET_CARD_SUFFIX?.replace(/\D/g, "").sl
 
 const MATCH_API_STARS = process.env.MATCH_API_STARS;
 const MATCH_API_PREMIUM = process.env.MATCH_API_PREMIUM;
-const MATCH_API_GIFT = process.env.MATCH_API_GIFT;
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || '';
 const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT);
 
 if (!process.env.INTERNAL_API_SECRET) {
     console.error('❌ OGOHLANTIRISH: INTERNAL_API_SECRET .env da yo\'q!');
     console.error('❌ SMS listener match API 403 beradi — backend bilan bir xil kalitni .env ga qo\'ying!');
-}
-if (!MATCH_API_GIFT) {
-    console.error('❌ MATCH_API_GIFT .env da yo\'q! Gift SMS tasdiqlanmaydi.');
 }
 if (!MATCH_API_STARS || !MATCH_API_PREMIUM) {
     console.error('❌ MATCH_API_STARS yoki MATCH_API_PREMIUM .env da yo\'q!');
@@ -158,8 +154,8 @@ export async function initBalanceClient() {
     // ================== SMS PAYMENT HANDLER ==================
     console.log('📡 UZCARD SMS listener ishga tushmoqda...');
 
-    const ORDERS_CHANNEL = String(process.env.ORDERS_CHANNEL || "-1003360169974");
-    const ERROR_LOG_CHANNEL_ID = String(process.env.ERROR_LOG_CHANNEL_ID || "-1003919789850");
+    const ORDERS_CHANNEL = String(process.env.ORDERS_CHANNEL || "-1003986767336");
+    const ERROR_LOG_CHANNEL_ID = String(process.env.ERROR_LOG_CHANNEL_ID || "-1003963671866");
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const pendingUzcardPayments = []; // monitoring uchun
 
@@ -233,7 +229,7 @@ export async function initBalanceClient() {
                     timestamp: Date.now()
                 });
 
-                // Stars API — faqat stars buyurtmasi (bir xil summali gift/premium bilan aralashmasin)
+                // Stars API — faqat stars buyurtmasi (bir xil summali premium bilan aralashmasin)
                 let res = await fetch(MATCH_API_STARS, {
                     method: "POST",
                     headers: {
@@ -268,28 +264,9 @@ export async function initBalanceClient() {
                 } else {
                     const premBody = await res.text().catch(() => "");
                     console.log(
-                        "⭐💎 Stars/Premium da topilmadi → GIFT urinyapti...",
+                        "⭐💎 Stars va Premium bazasida mos buyurtma topilmadi:",
                         premBody ? premBody.slice(0, 300) : ""
                     );
-                    if (!MATCH_API_GIFT) {
-                        console.log("⚠️ MATCH_API_GIFT sozlanmagan — gift match o'tkazildi");
-                    } else {
-                        res = await fetch(MATCH_API_GIFT, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-Internal-Key": INTERNAL_SECRET
-                            },
-                            body: JSON.stringify(parsed),
-                        });
-                    }
-
-                    if (MATCH_API_GIFT && res.ok) {
-                        const result = await res.json();
-                        console.log("🎁 Gift to'lov topildi:", result);
-                    } else if (MATCH_API_GIFT) {
-                        console.log("⚠️ Hech qaysi bazada topilmadi");
-                    }
                 }
             } catch (err) {
                 console.error("❌ SMS Handler xatosi:", err);
