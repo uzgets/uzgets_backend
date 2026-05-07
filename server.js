@@ -10,6 +10,22 @@ import { Telegraf } from 'telegraf';
 dotenv.config();
 const { Pool } = pkg;
 const app = express();
+
+/** SMS/to'lov: kartaning oxirgi 4 raqami (.env TARGET_CARD_SUFFIX yoki VITE_CARD_NUMBER). */
+function normalizeCardLast4(value) {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const digits = String(value).replace(/\D/g, "");
+  return digits.length >= 4 ? digits.slice(-4) : null;
+}
+const BUSINESS_CARD_LAST4 = normalizeCardLast4(
+  process.env.TARGET_CARD_SUFFIX || process.env.VITE_CARD_NUMBER || ""
+);
+if (!BUSINESS_CARD_LAST4) {
+  console.warn(
+    "⚠️ TARGET_CARD_SUFFIX/VITE_CARD_NUMBER da kartaning oxirgi 4 raqami yo'q — SMS match uchun expected_card_last4 bo'sh qolishi mumkin."
+  );
+}
+
 const PORT = Number(process.env.PORT) || 7001;
 const INTERNAL_API_BASE = (process.env.INTERNAL_API_BASE || `http://127.0.0.1:${PORT}`).replace(/\/$/, '');
 const BALANCE_CHECKER_PORT = Number(process.env.BALANCE_CHECKER_PORT) || 7002;
@@ -1713,6 +1729,7 @@ pool.on('connect', () => {
       applied_promocode TEXT,
       discount_amount INTEGER DEFAULT 0,
       expired_notified BOOLEAN DEFAULT false,
+      expected_card_last4 VARCHAR(4),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'Asia/Tashkent')
     );
   `);
@@ -1727,7 +1744,19 @@ pool.on('connect', () => {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS applied_promocode TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount INTEGER DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS expired_notified BOOLEAN DEFAULT false;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS expected_card_last4 VARCHAR(4);
   `);
+
+  if (BUSINESS_CARD_LAST4) {
+    await pool.query(
+      `UPDATE orders SET expected_card_last4 = $1
+       WHERE expected_card_last4 IS NULL
+         AND payment_method = 'card'
+         AND payment_status = 'pending'
+         AND status = 'pending'`,
+      [BUSINESS_CARD_LAST4]
+    );
+  }
 
   console.log("✅ Table 'orders' ready (unified)");
 })();
@@ -2628,10 +2657,10 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
 
       const orderId = crypto.randomUUID();
       const result = await client.query(
-        `INSERT INTO orders (order_id, owner_user_id, recipient_username, recipient, order_type, type_amount, summ, payment_method, payment_status, status, applied_promocode, discount_amount, created_at)
-         VALUES ($1, $2, $3, $4, 'stars', $5, $6, 'card', 'pending', 'pending', $7, $8, NOW())
+        `INSERT INTO orders (order_id, owner_user_id, recipient_username, recipient, order_type, type_amount, summ, payment_method, payment_status, status, applied_promocode, discount_amount, expected_card_last4, created_at)
+         VALUES ($1, $2, $3, $4, 'stars', $5, $6, 'card', 'pending', 'pending', $7, $8, $9, NOW())
          RETURNING *`,
-        [orderId, ownerUserId, cleanUsername, recipient, starsNum, uniqueSum, promoCodeValid, finalDiscountAmount]
+        [orderId, ownerUserId, cleanUsername, recipient, starsNum, uniqueSum, promoCodeValid, finalDiscountAmount, BUSINESS_CARD_LAST4]
       );
       
       await client.query('COMMIT');
@@ -2810,8 +2839,11 @@ app.get("/api/transactions/:id", telegramAuth, async (req, res) => {
 app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
   try {
     const { card_last4, amount, allowed_order_types } = req.body;
-    if (!card_last4 || !amount)
-      return res.status(400).json({ error: "card_last4 va amount kerak" });
+    if (amount === undefined || amount === null || amount === "")
+      return res.status(400).json({ error: "amount kerak" });
+    const cardNorm = normalizeCardLast4(card_last4);
+    if (!cardNorm)
+      return res.status(400).json({ error: "card_last4 4 raqam bo'lishi kerak" });
 
     const typeFilter =
       Array.isArray(allowed_order_types) && allowed_order_types.length > 0
@@ -2831,6 +2863,8 @@ app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
          WHERE summ = $1 
            AND payment_status = 'pending'
            AND status = 'pending'
+           AND payment_method = 'card'
+           AND expected_card_last4 = $3
            AND order_type = ANY($2::text[])
            AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC 
@@ -2838,7 +2872,7 @@ app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`,
-            [amount, typeFilter]
+            [amount, typeFilter, cardNorm]
           )
         : await pool.query(
             `UPDATE orders
@@ -2849,13 +2883,15 @@ app.post("/api/payments/match", internalSecretAuth, async (req, res) => {
          WHERE summ = $1 
            AND payment_status = 'pending'
            AND status = 'pending'
+           AND payment_method = 'card'
+           AND expected_card_last4 = $2
            AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC 
          LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`,
-            [amount]
+            [amount, cardNorm]
           );
     if (!updated.rows.length)
       return res.status(404).json({ message: "Pending payment not found" });
@@ -3421,10 +3457,10 @@ app.post("/api/premium", orderLimiter, telegramAuth, async (req, res) => {
 
       // 🟦 YANGI orders jadvaliga yozish
       const result = await client.query(
-        `INSERT INTO orders (order_id, owner_user_id, recipient_username, recipient, order_type, type_amount, summ, payment_method, payment_status, status, applied_promocode, discount_amount, created_at)
-         VALUES ($1, $2, $3, $4, 'premium', $5, $6, 'card', 'pending', 'pending', $7, $8, NOW())
+        `INSERT INTO orders (order_id, owner_user_id, recipient_username, recipient, order_type, type_amount, summ, payment_method, payment_status, status, applied_promocode, discount_amount, expected_card_last4, created_at)
+         VALUES ($1, $2, $3, $4, 'premium', $5, $6, 'card', 'pending', 'pending', $7, $8, $9, NOW())
          RETURNING *`,
-        [orderId, ownerUserId, clean, recipient, months, uniqueSum, promoCodeValid, finalDiscountAmount]
+        [orderId, ownerUserId, clean, recipient, months, uniqueSum, promoCodeValid, finalDiscountAmount, BUSINESS_CARD_LAST4]
       );
 
       await client.query('COMMIT');
@@ -3547,6 +3583,11 @@ app.post("/api/premium/match", internalSecretAuth, async (req, res) => {
       console.log("❌ Amount yo‘q");
       return res.status(400).json({ error: "amount kerak" });
     }
+    const cardNorm = normalizeCardLast4(card_last4);
+    if (!cardNorm) {
+      console.log("❌ card_last4 yo'q / noto'g'ri");
+      return res.status(400).json({ error: "card_last4 4 raqam bo'lishi kerak" });
+    }
     console.log("🔎 Pending premium order qidirilmoqda:", amount);
     // 🔐 ATOMIC UPDATE - orders jadvalidan
     const updated = await pool.query(
@@ -3557,13 +3598,15 @@ app.post("/api/premium/match", internalSecretAuth, async (req, res) => {
          WHERE summ=$1 
            AND payment_status='pending' 
            AND status='pending'
+           AND payment_method='card'
+           AND expected_card_last4=$2
            AND order_type='premium'
            AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC LIMIT 1 
          FOR UPDATE SKIP LOCKED
        ) 
        RETURNING *`,
-      [amount]
+      [amount, cardNorm]
     );
     if (!updated.rows.length) {
       console.log("❌ Pending premium TOPILMADI");
@@ -5649,8 +5692,8 @@ const uniqueSum = await generateUniqueOrderSum(finalAmount, client);
       const orderId = crypto.randomUUID();
       const result = await client.query(
         `INSERT INTO orders
-         (order_id, owner_user_id, recipient_username, recipient, order_type, type_amount, summ, payment_method, payment_status, status, gift_id, gift_anonymous, gift_comment, applied_promocode, discount_amount, created_at)
-         VALUES ($1, $2, $3, $4, 'gift', $5, $6, 'card', 'pending', 'pending', $7, $8, $9, $10, $11, NOW())
+         (order_id, owner_user_id, recipient_username, recipient, order_type, type_amount, summ, payment_method, payment_status, status, gift_id, gift_anonymous, gift_comment, applied_promocode, discount_amount, expected_card_last4, created_at)
+         VALUES ($1, $2, $3, $4, 'gift', $5, $6, 'card', 'pending', 'pending', $7, $8, $9, $10, $11, $12, NOW())
          RETURNING *`,
         [
           orderId,
@@ -5663,7 +5706,8 @@ const uniqueSum = await generateUniqueOrderSum(finalAmount, client);
           anonymous === true,
           comment && comment.trim() ? comment.trim() : null,
           promoCodeValid,
-          finalDiscountAmount
+          finalDiscountAmount,
+          BUSINESS_CARD_LAST4,
         ]
       );
       await client.query('COMMIT');
@@ -5823,8 +5867,12 @@ app.get("/api/gift/status/:id", telegramAuth, async (req, res) => {
 app.post("/api/gift/match", internalSecretAuth, async (req, res) => {
   try {
     const { card_last4, amount } = req.body;
-    if (!card_last4 || !amount) {
-      return res.status(400).json({ error: "card_last4 va amount kerak" });
+    if (amount === undefined || amount === null || amount === "") {
+      return res.status(400).json({ error: "amount kerak" });
+    }
+    const cardNorm = normalizeCardLast4(card_last4);
+    if (!cardNorm) {
+      return res.status(400).json({ error: "card_last4 4 raqam bo'lishi kerak" });
     }
     const updated = await pool.query(
       `UPDATE orders
@@ -5835,6 +5883,8 @@ app.post("/api/gift/match", internalSecretAuth, async (req, res) => {
          WHERE summ = $1 
            AND payment_status = 'pending' 
            AND status = 'pending'
+           AND payment_method = 'card'
+           AND expected_card_last4 = $2
            AND order_type = 'gift'
            AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC
@@ -5842,7 +5892,7 @@ app.post("/api/gift/match", internalSecretAuth, async (req, res) => {
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`,
-      [amount]
+      [amount, cardNorm]
     );
     if (!updated.rows.length) {
       return res.status(404).json({ message: "Pending gift payment not found" });
@@ -6287,12 +6337,16 @@ app.post("/api/v2/order/create", orderLimiter, telegramAuth, async (req, res) =>
       
       // Orderni yaratish
       const orderId = crypto.randomUUID();
+      const resolvedPaymentMethod = payment_method || 'card';
+      const expectedLast4 =
+        resolvedPaymentMethod === 'card' ? BUSINESS_CARD_LAST4 : null;
+
       const result = await client.query(
         `INSERT INTO orders (
           order_id, owner_user_id, recipient_username, recipient, order_type, 
           type_amount, summ, payment_method, payment_status, status,
-          gift_id, gift_anonymous, gift_comment, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', 'pending', $9, $10, $11, NOW())
+          gift_id, gift_anonymous, gift_comment, expected_card_last4, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', 'pending', $9, $10, $11, $12, NOW())
         RETURNING *`,
         [
           orderId,
@@ -6302,10 +6356,11 @@ app.post("/api/v2/order/create", orderLimiter, telegramAuth, async (req, res) =>
           order_type,
           type_amount,
           uniqueSum,
-          payment_method || 'card',
+          resolvedPaymentMethod,
           gift_id || null,
           gift_anonymous || false,
-          gift_comment || null
+          gift_comment || null,
+          expectedLast4,
         ]
       );
       
@@ -6412,6 +6467,10 @@ app.post("/api/v2/payments/match", internalSecretAuth, async (req, res) => {
     if (!amount) {
       return res.status(400).json({ error: "amount kerak" });
     }
+    const cardNorm = normalizeCardLast4(card_last4);
+    if (!cardNorm) {
+      return res.status(400).json({ error: "card_last4 4 raqam bo'lishi kerak" });
+    }
     
     // Atomic update — race condition oldini olish
     const updated = await pool.query(
@@ -6422,13 +6481,15 @@ app.post("/api/v2/payments/match", internalSecretAuth, async (req, res) => {
          WHERE summ = $1 
            AND payment_status = 'pending' 
            AND status = 'pending'
+           AND payment_method = 'card'
+           AND expected_card_last4 = $2
            AND created_at >= NOW() - INTERVAL '15 minutes'
          ORDER BY id DESC 
          LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`,
-      [amount]
+      [amount, cardNorm]
     );
     
     if (!updated.rows.length) {
