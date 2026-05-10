@@ -375,19 +375,19 @@ async function loadPendingOrdersToCache() {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
             } else if (row.order_type === 'gift') {
               expiredNotificationText = `⚠️ Siz gift yuborishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
             } else if (row.order_type === 'premium') {
               expiredNotificationText = `⚠️ Siz premium sotib olishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
             }
             
             await bot.telegram.sendMessage(row.owner_user_id, expiredNotificationText);
@@ -523,19 +523,19 @@ setInterval(async () => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
             } else if (row.order_type === 'gift') {
               expiredNotificationText = `⚠️ Siz gift yuborishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
             } else if (row.order_type === 'premium') {
               expiredNotificationText = `⚠️ Siz premium sotib olishga harakat qildingiz, ammo to'lov amalga oshirilmadi.
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
             }
             
             await bot.telegram.sendMessage(row.owner_user_id, expiredNotificationText);
@@ -2755,7 +2755,7 @@ app.post("/api/order", orderLimiter, telegramAuth, async (req, res) => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
@@ -3537,7 +3537,7 @@ app.post("/api/premium", orderLimiter, telegramAuth, async (req, res) => {
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
@@ -5789,7 +5789,7 @@ const uniqueSum = await generateUniqueOrderSum(finalAmount, client);
 
 Agar qandaydir muammo yuzaga kelgan bo'lsa, iltimos admin bilan bog'laning:
 
-👉 @uzgets`;
+Admin: @uzgets_jbot`;
               await bot.telegram.sendMessage(ownerUserId, expiredNotificationText);
               await pool.query(
                 `UPDATE orders SET expired_notified = true WHERE id = $1`,
