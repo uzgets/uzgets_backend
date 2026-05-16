@@ -261,6 +261,13 @@ export async function initBalanceClient() {
                 if (res.ok) {
                     const result = await res.json();
                     console.log("🎉 Muvaffaqiyatli topildi:", result);
+                    // Match API buyurtmani yopdi — pending monitoringdan olib tashlash (aks holda
+                    // ORDERS kanaliga bog'liq bo'lib, muvaffaqiyatli to'lov ham 5 daqiqadan keyin "XATO tolov" deb ketishi mumkin)
+                    const resolvedIdx = pendingUzcardPayments.findIndex((p) => p.amount === parsed.amount);
+                    if (resolvedIdx !== -1) {
+                        pendingUzcardPayments.splice(resolvedIdx, 1);
+                        console.log(`✅ [Monitoring] ${parsed.amount} so'm SMS match API orqali yopildi — pending dan olib tashlandi.`);
+                    }
                 } else {
                     const premBody = await res.text().catch(() => "");
                     console.log(
